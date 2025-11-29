@@ -1,13 +1,13 @@
 Built Your Own GPS Tracker with Geofence Using Xiao ESP32-S3
 
-This project demonstrates how to build a low-cost GPS tracker with geofencing and SMS alerts using the Seeed Studio XIAO ESP32-S3 and the NEO-6M GPS module.Unlike traditional GPS trackers that require GSM modules and SIM cards, this project uses Wi-Fi to transmit the device’s real-time GPS location to GeoLinker Cloud—a free service by Circuit Digest.Using GeoLinker, you can view real-time location points, route history, and receive SMS alerts when the device exits the geofence boundary.
+This project demonstrates how to build a low-cost GPS tracker with geofencing and SMS alerts using the Seeed Studio XIAO ESP32-S3 and the NEO-6M GPS module.Unlike traditional GPS trackers that require GSM modules and SIM cards, this project uses Wi-Fi to transmit the device’s real-time GPS location to GeoLinker Cloud-a free service by Circuit Digest.Using GeoLinker, you can view real-time location points, route history, and receive SMS alerts when the device exits the geofence boundary.
 
 🛰️ Features:
 •	📡 Real-time GPS tracking
 •	🗺️ Route history plotted automatically
 •	🚧 Geofence support (custom radius)
 •	📩 SMS alerts on geofence breach
-•	📶 Works on Wi-Fi — no SIM card or GSM module needed
+•	📶 Works on Wi-Fi no SIM card or GSM module needed
 •	💾 Offline data storage when internet fails
 •	🔁 Automatic sync to cloud when connection returns
 •	🆓 Completely free to use with GeoLinker Cloud
