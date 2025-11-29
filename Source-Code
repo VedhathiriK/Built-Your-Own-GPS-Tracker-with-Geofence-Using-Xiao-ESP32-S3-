@@ -1,0 +1,244 @@
+#include <GeoLinker.h>
+#include <TinyGPSPlus.h>
+#include <WiFiClientSecure.h>
+void sendSMS(float latitude, float longitude);
+// ==================================================================
+//                    HARDWARE CONFIGURATION
+// ==================================================================
+// GPS Serial Communication Setup
+HardwareSerial gpsSerial(1);  // Using Serial1 for GPS communication
+#define GPS_RX 44            // GPIO43 connected to GPS module TX pin
+#define GPS_TX 43             // GPIO44 connected to GPS module RX pin
+// GPS Communication Settings
+#define GPS_BAUD 9600         // Standard NMEA GPS baud rate (9600 bps)
+// ==================================================================
+//                    NETWORK CONFIGURATION
+// ==================================================================
+// WiFi Network Credentials
+
+const char* ssid = "Yourname";       // Your WiFi network name (SSID) 
+const char* password = "yourpassword";    
+
+// ==================================================================
+//                   GEOLINKER CONFIGURATION
+// ==================================================================
+// API Authentication
+const char* apiKey = "youruniqueapikey";    // Your unique GeoLinker API key 
+const char* deviceID = "ESP-32_Tracker";
+const char* templateID = "110";
+const char* mobileNumber = "yournumber"; 
+
+// Data Transmission Settings
+const uint16_t updateInterval = 15;       // How often to send data (seconds)
+const bool enableOfflineStorage = true; // Store data when offline
+const uint8_t offlineBufferLimit = 20;  // Maximum offline records to store
+                                       // Keep minimal for MCUs with limited RAM
+// Connection Management
+const bool enableAutoReconnect = true;  // Automatically reconnect to WiFi
+                                       // Note: Only applies to WiFi, ignored with GSM
+// Timezone Configuration
+const int8_t timeOffsetHours = 5;       // Timezone hours offset from UTC
+const int8_t timeOffsetMinutes = 30;
+
+const float homeLat = 11.011160;
+const float homeLon =77.013080;
+
+bool alertSent = false;  
+    // Timezone minutes offset from UTC
+                                      // Example: IST = UTC+5:30
+// Create GeoLinker instance
+GeoLinker geo;
+TinyGPSPlus gps;
+
+
+// ==================================================================
+//                    INITIALIZATION SETUP
+// ==================================================================
+// Calculate distance between two coordinates (in meters)
+double distanceBetween(double lat1, double lon1, double lat2, double lon2) {
+  double R = 6371000; // Earth radius in meters
+  double dLat = radians(lat2 - lat1);
+  double dLon = radians(lon2 - lon1);
+  double a = sin(dLat/2) * sin(dLat/2) +
+             cos(radians(lat1)) * cos(radians(lat2)) *
+             sin(dLon/2) * sin(dLon/2);
+  double c = 2 * atan2(sqrt(a), sqrt(1-a));
+  return R * c;
+}
+
+void sendSMS(float latitude, float longitude) {
+
+  Serial.println("📨 SMS FUNCTION CALLED");
+
+  WiFiClientSecure client;
+  client.setInsecure();  // Disable certificate check
+
+  HTTPClient http;
+
+  String apiUrl = "https://www.circuitdigest.cloud/send_sms?ID=" + String(templateID);
+  Serial.print("SMS API URL: ");
+  Serial.println(apiUrl);
+
+  http.begin(client, apiUrl);
+  http.addHeader("Authorization", apiKey);
+  http.addHeader("Content-Type", "application/json");
+
+  // JSON template
+String payload = "{\"mobiles\":\"" + String(mobileNumber) +
+                 "\",\"var1\":\"ESP32" +
+                 "\",\"var2\":\"" + String(latitude, 6) + "," + String(longitude, 6) + "\"}";
+
+
+  Serial.print("SMS JSON Payload: ");
+  Serial.println(payload);
+
+  int code = http.POST(payload);
+
+  Serial.print("📡 SMS HTTP Response Code: ");
+  Serial.println(code);
+
+  String response = http.getString();
+  Serial.print("📨 SMS Server Response: ");
+  Serial.println(response);
+
+  http.end();
+}
+
+void setup() {
+ // Initialize serial communication for debugging
+ Serial.begin(115200);
+ delay(1000);  // Allow serial to initialize
+ Serial.println("Starting GeoLinker GPS Tracker...");
+ // Initialize GPS serial communication with custom pins
+ gpsSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX, GPS_TX);
+ Serial.println("GPS Serial initialized on pins 16(RX) and 17(TX)");
+ // ==================================================================
+ //                   GEOLINKER LIBRARY SETUP
+ // ==================================================================
+ // Initialize GeoLinker with GPS serial interface
+ geo.begin(gpsSerial);
+ Serial.println("GeoLinker library initialized");
+ // Configure API authentication
+ geo.setApiKey(apiKey);
+ Serial.println("API key configured");
+ // Set unique device identifier
+ geo.setDeviceID(deviceID);
+ Serial.println("Device ID set");
+ // Configure data transmission interval
+ geo.setUpdateInterval_seconds(updateInterval);
+ Serial.print("Update interval set to ");
+ Serial.print(updateInterval);
+ Serial.println(" seconds");
+ // Set debug verbosity level
+ // Options: DEBUG_NONE, DEBUG_BASIC, DEBUG_VERBOSE
+ geo.setDebugLevel(DEBUG_BASIC);
+ Serial.println("Debug level set to BASIC");
+ // Enable offline data storage capability
+ geo.enableOfflineStorage(enableOfflineStorage);
+ if(enableOfflineStorage) {
+   Serial.println("Offline storage enabled");
+ }
+ // Enable automatic WiFi reconnection
+ geo.enableAutoReconnect(enableAutoReconnect);
+ if(enableAutoReconnect) {
+   Serial.println("Auto-reconnect enabled");
+ }
+ // Set maximum offline buffer size (important for memory management)
+ geo.setOfflineBufferLimit(offlineBufferLimit);
+ Serial.print("Offline buffer limit set to ");
+ Serial.print(offlineBufferLimit);
+ Serial.println(" records");
+ // Configure timezone offset for accurate timestamps
+ geo.setTimeOffset(timeOffsetHours, timeOffsetMinutes);
+ Serial.print("Timezone offset set to UTC+");
+ Serial.print(timeOffsetHours);
+ Serial.print(":");
+ Serial.println(timeOffsetMinutes);
+ // ==================================================================
+ //                    NETWORK CONNECTION SETUP
+ // ==================================================================
+ geo.setNetworkMode(GEOLINKER_WIFI);
+ Serial.println("Network mode set to WiFi");
+ // Set WiFi network credentials
+ geo.setWiFiCredentials(ssid, password);
+ Serial.println("WiFi credentials configured");
+ // Attempt WiFi connection
+ Serial.print("Connecting to WiFi network: ");
+ Serial.println(ssid);
+ if (!geo.connectToWiFi()) {
+   Serial.println("ERROR: WiFi connection failed!");
+   Serial.println("Device will continue with offline storage mode");
+ } else {
+   Serial.println("WiFi connected successfully!");
+ }
+ Serial.println("\n" + String("=").substring(0,50));
+ Serial.println("GeoLinker GPS Tracker setup complete!");
+ Serial.println("Starting main tracking loop...");
+ Serial.println(String("=").substring(0,50) + "\n");
+}
+// ==================================================================
+//                   MAIN PROGRAM LOOP
+// ==================================================================
+void loop() {
+
+ uint8_t status = geo.loop();
+
+ 
+
+ if (status > 0) {
+   Serial.print("[STATUS] GeoLinker Operation: ");
+   
+   switch(status) {
+     case STATUS_SENT:
+       Serial.println("✓ Data transmitted successfully to cloud!");
+       break;
+     case STATUS_GPS_ERROR:
+       Serial.println("✗ GPS module connection error - Check wiring!");
+       break;
+     case STATUS_NETWORK_ERROR:
+       Serial.println("⚠ Network connectivity issue - Data buffered offline");
+       break;
+     case STATUS_BAD_REQUEST_ERROR:
+       Serial.println("✗ Server rejected request - Check API key and data format");
+       break;
+     case STATUS_PARSE_ERROR:
+       Serial.println("✗ GPS data parsing error - Invalid NMEA format");
+       break;
+     case STATUS_INTERNAL_SERVER_ERROR:
+       Serial.println("✗ GeoLinker server internal error - Try again later");
+       break;
+     default:
+       Serial.print("? Unknown status code: ");
+       Serial.println(status);
+       break;
+   }
+ }
+ while (gpsSerial.available() > 0) {
+  gps.encode(gpsSerial.read());
+}
+if (gps.location.isUpdated()) {
+
+float latitude = gps.location.lat();
+float longitude = gps.location.lng();
+
+double dist = distanceBetween(homeLat, homeLon, latitude, longitude);
+
+Serial.print("Distance from home (meters): ");
+Serial.println(dist);
+
+if (dist > 50 && !alertSent) {                                              
+    Serial.println("🚨 GEOFENCE BREACH! Sending SMS...");
+    sendSMS(latitude, longitude);
+    alertSent = true;
+}
+
+if (dist <= 50 && alertSent) {
+    Serial.println("Bike returned inside geofence.");
+    alertSent = false;
+}
+
+    }
+
+
+ delay(100);
+}
