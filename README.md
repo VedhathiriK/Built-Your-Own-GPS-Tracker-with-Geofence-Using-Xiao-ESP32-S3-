@@ -76,9 +76,6 @@ sendSMS() sends location alerts via API
 •	When Wi-Fi disconnects data is saved locally and uploaded once Wi-Fi returns
 •	During movement, GeoLinker draws the route on the map
 
-📦 GitHub Repository
-
-
 
 🏁 Conclusion
 
