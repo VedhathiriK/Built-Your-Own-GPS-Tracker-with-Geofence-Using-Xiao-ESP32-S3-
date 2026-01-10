@@ -76,6 +76,9 @@ sendSMS() sends location alerts via API
 •	When Wi-Fi disconnects data is saved locally and uploaded once Wi-Fi returns
 •	During movement, GeoLinker draws the route on the map
 
+Project link
+https://circuitdigest.com/microcontroller-projects/gps-tracker-with-seeed-studio-xiao-esp32-s3-and-geofencing
+
 
 🏁 Conclusion
 
