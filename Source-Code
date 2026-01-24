@@ -75,7 +75,7 @@ void sendSMS(float latitude, float longitude) {
 
   HTTPClient http;
 
-  String apiUrl = "https://www.circuitdigest.cloud/send_sms?ID=" + String(templateID);
+  String apiUrl = "https://www.circuitdigest.cloud/api/v1/send_sms?ID=" + String(templateID);
   Serial.print("SMS API URL: ");
   Serial.println(apiUrl);
 
